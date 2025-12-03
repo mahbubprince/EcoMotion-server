@@ -165,29 +165,69 @@ async function run() {
 
     // {{{{{{search}}}}}}
 
-    app.get("/search", async (req, res) => {
-      const { search, eventType } = req.query;
-      const query = {};
+    // app.get("/search", async (req, res) => {
+    //   const { search, eventType } = req.query;
+    //   const query = {};
 
-      if (search && search.trim() !== "") {
-        query.title = { $regex: search, $options: "i" };
-      }
+    //   if (search && search.trim() !== "") {
+    //     query.title = { $regex: search, $options: "i" };
+    //   }
 
-      if (eventType && eventType !== "all") {
-        query.eventType = eventType;
-      }
+    //   if (eventType && eventType !== "all") {
+    //     query.eventType = eventType;
+    //   }
 
-      const today = new Date();
-      query.date = { $gt: today };
+    //   // const today = new Date();
+    //   // query.date = { $gt: today };
 
-      try {
-        const result = await ecoEvents.find(query).toArray();
-        res.send(result);
-      } catch (error) {
-        console.error("Error fetching events:", error);
-        res.status(500).json({ error: "Failed to fetch events" });
-      }
-    });
+    //   try {
+    //     const result = await ecoEvents.find(query).toArray();
+    //     res.send(result);
+    //   } catch (error) {
+    //     console.error("Error fetching events:", error);
+    //     res.status(500).json({ error: "Failed to fetch events" });
+    //   }
+    // });
+
+
+
+
+
+
+
+app.get("/search", async (req, res) => {
+  const { search, eventType } = req.query;
+  const query = {};
+
+  // 🔍 Search by title (case-insensitive)
+  if (search && search.trim() !== "") {
+    query.title = { $regex: search.trim(), $options: "i" };
+  }
+
+  // 🎯 Filter by event type
+  if (eventType && eventType !== "all") {
+    query.eventType = eventType;
+  }
+
+  // 🗓️ Only show events with future dates (upcoming)
+  const today = new Date();
+  query.date = { $gt: today };
+
+  try {
+    // ✅ Sort by date (soonest first)
+    const result = await ecoEvents.find(query).sort({ date: 1 }).toArray();
+    res.send(result);
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    res.status(500).json({ error: "Failed to fetch upcoming events" });
+  }
+});
+
+
+
+
+
+
 
     // {{{{delete}}}}
 
