@@ -31,11 +31,34 @@ async function run() {
     const db = client.db("EcoMotion-db");
     const ecoEvents = db.collection("events");
 
-    app.get("/events", async (req, res) => {
-      const result = await ecoEvents.find().toArray();
-      // console.log(result);
-      res.send(result);
-    });
+    // app.get("/events", async (req, res) => {
+    //   const result = await ecoEvents.find().toArray();
+    //   // console.log(result);
+    //   res.send(result);
+    // });
+
+
+
+
+
+// ✅ Only show upcoming events
+app.get("/events", async (req, res) => {
+  try {
+    const today = new Date();
+    const result = await ecoEvents
+      .find({ date: { $gt: today } }) // future events only
+      .sort({ date: 1 }) // sort earliest first
+      .toArray();
+
+    res.send(result);
+  } catch (error) {
+    console.error("Error fetching upcoming events:", error);
+    res.status(500).send({ success: false, message: "Server Error" });
+  }
+});
+
+
+
 
     // {{{{event post}}}}
 
