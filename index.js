@@ -24,8 +24,13 @@ const client = new MongoClient(uri, {
 });
 
 async function run() {
-  try {
-    // await client.connect();
+  try {  
+
+
+    
+    // await   client.connect();
+
+
 
     const db = client.db("EcoMotion-db");
     const ecoEvents = db.collection("events");
