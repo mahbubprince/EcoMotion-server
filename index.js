@@ -121,7 +121,7 @@ app.get("/events", async (req, res) => {
         const result = await ecoEvents
           .find({
             $or: [{ createdByEmail: email }, { joinedUsers: { $in: [email] } }],
-          })
+          }).sort({ date: 1 }) 
           .toArray();
         res.send(result);
       } catch (error) {
@@ -170,7 +170,7 @@ app.get("/events", async (req, res) => {
       try {
         const result = await ecoEvents
           .find()
-          .sort({ date: -1 }) // -1 = latest first
+          .sort({ date: -1 }) 
           .limit(6)
           .toArray();
 
