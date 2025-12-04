@@ -27,7 +27,7 @@ async function run() {
   try {  
 
 
-    
+
     // await   client.connect();
 
 
@@ -232,11 +232,9 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("Hello World");
+  res.send("Everything is fine");
 });
-app.get("/hello", (req, res) => {
-  res.send("hello!");
-});
+
 
 app.listen(port, () => {
   console.log(`Example app listening in port ${port}`);
