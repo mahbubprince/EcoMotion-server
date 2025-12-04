@@ -5,7 +5,7 @@ const port = 3000;
 const admin = require("firebase-admin");
 const serviceAccount = require("./firebaseService.json");
 const cors = require("cors");
-require('dotenv').config()
+require("dotenv").config();
 app.use(express.json());
 app.use(cors());
 
@@ -13,8 +13,7 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-const uri =
-  `mongodb+srv://${process.env.db_username}:${process.env.db_pass}@cluster0.8rgzblm.mongodb.net/?appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.db_username}:${process.env.db_pass}@cluster0.8rgzblm.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -31,34 +30,21 @@ async function run() {
     const db = client.db("EcoMotion-db");
     const ecoEvents = db.collection("events");
 
-    // app.get("/events", async (req, res) => {
-    //   const result = await ecoEvents.find().toArray();
-    //   // console.log(result);
-    //   res.send(result);
-    // });
+    //  Only show upcoming events
+    app.get("/events", async (req, res) => {
+      try {
+        const today = new Date();
+        const result = await ecoEvents
+          .find({ date: { $gt: today } }) // future events only
+          .sort({ date: 1 }) // sort earliest first
+          .toArray();
 
-
-
-
-
-// ✅ Only show upcoming events
-app.get("/events", async (req, res) => {
-  try {
-    const today = new Date();
-    const result = await ecoEvents
-      .find({ date: { $gt: today } }) // future events only
-      .sort({ date: 1 }) // sort earliest first
-      .toArray();
-
-    res.send(result);
-  } catch (error) {
-    console.error("Error fetching upcoming events:", error);
-    res.status(500).send({ success: false, message: "Server Error" });
-  }
-});
-
-
-
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching upcoming events:", error);
+        res.status(500).send({ success: false, message: "Server Error" });
+      }
+    });
 
     // {{{{event post}}}}
 
@@ -70,7 +56,7 @@ app.get("/events", async (req, res) => {
           ...data,
           createdByEmail: data.createdByEmail,
           joinedUsers: [data.createdByEmail],
-          date: new Date(data.date), 
+          date: new Date(data.date),
         };
 
         const result = await ecoEvents.insertOne(event);
@@ -90,7 +76,7 @@ app.get("/events", async (req, res) => {
 
         const filter = { _id: new ObjectId(id) };
         const updateDoc = {
-          $addToSet: { joinedUsers: email }, 
+          $addToSet: { joinedUsers: email },
         };
 
         const result = await ecoEvents.updateOne(filter, updateDoc);
@@ -108,7 +94,6 @@ app.get("/events", async (req, res) => {
       console.log(id);
       const result = await ecoEvents.findOne({ _id: new ObjectId(id) });
       res.send({
-        // success: true,
         result,
       });
     });
@@ -121,7 +106,8 @@ app.get("/events", async (req, res) => {
         const result = await ecoEvents
           .find({
             $or: [{ createdByEmail: email }, { joinedUsers: { $in: [email] } }],
-          }).sort({ date: 1 }) 
+          })
+          .sort({ date: 1 })
           .toArray();
         res.send(result);
       } catch (error) {
@@ -170,7 +156,7 @@ app.get("/events", async (req, res) => {
       try {
         const result = await ecoEvents
           .find()
-          .sort({ date: -1 }) 
+          .sort({ date: -1 })
           .limit(6)
           .toArray();
 
@@ -184,73 +170,33 @@ app.get("/events", async (req, res) => {
       }
     });
 
-    // });
+    app.get("/search", async (req, res) => {
+      const { search, eventType } = req.query;
+      const query = {};
 
-    // {{{{{{search}}}}}}
+      //  Search by title (case-insensitive)
+      if (search && search.trim() !== "") {
+        query.title = { $regex: search.trim(), $options: "i" };
+      }
 
-    // app.get("/search", async (req, res) => {
-    //   const { search, eventType } = req.query;
-    //   const query = {};
+      //  Filter by event type
+      if (eventType && eventType !== "all") {
+        query.eventType = eventType;
+      }
 
-    //   if (search && search.trim() !== "") {
-    //     query.title = { $regex: search, $options: "i" };
-    //   }
+      //  Only show events with future dates (upcoming)
+      const today = new Date();
+      query.date = { $gt: today };
 
-    //   if (eventType && eventType !== "all") {
-    //     query.eventType = eventType;
-    //   }
-
-    //   // const today = new Date();
-    //   // query.date = { $gt: today };
-
-    //   try {
-    //     const result = await ecoEvents.find(query).toArray();
-    //     res.send(result);
-    //   } catch (error) {
-    //     console.error("Error fetching events:", error);
-    //     res.status(500).json({ error: "Failed to fetch events" });
-    //   }
-    // });
-
-
-
-
-
-
-
-app.get("/search", async (req, res) => {
-  const { search, eventType } = req.query;
-  const query = {};
-
-  // 🔍 Search by title (case-insensitive)
-  if (search && search.trim() !== "") {
-    query.title = { $regex: search.trim(), $options: "i" };
-  }
-
-  // 🎯 Filter by event type
-  if (eventType && eventType !== "all") {
-    query.eventType = eventType;
-  }
-
-  // 🗓️ Only show events with future dates (upcoming)
-  const today = new Date();
-  query.date = { $gt: today };
-
-  try {
-    // ✅ Sort by date (soonest first)
-    const result = await ecoEvents.find(query).sort({ date: 1 }).toArray();
-    res.send(result);
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    res.status(500).json({ error: "Failed to fetch upcoming events" });
-  }
-});
-
-
-
-
-
-
+      try {
+        //  Sort by date (soonest first)
+        const result = await ecoEvents.find(query).sort({ date: 1 }).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+        res.status(500).json({ error: "Failed to fetch upcoming events" });
+      }
+    });
 
     // {{{{delete}}}}
 
